@@ -13,8 +13,8 @@ inverseCaptcha <- function(vec, index){
   repeat{
     num <- vec[i]
     
-    # since circular circular list we have to check
-    # decide the right indexing
+    # since circular circular list we have to
+    # decide the right index
     if(i + index > length(vec)){
       newIndex <- index - (length(vec) - i)
       comp <- vec[newIndex]
@@ -38,18 +38,14 @@ inverseCaptcha <- function(vec, index){
 
 
 main <- function(){
+  
   start <- Sys.time()
   
-  # Checks the current working directory
-  WD <- getwd()
+  # Reads the commandline argument
+  argv <- commandArgs(TRUE)
   
-  # Sets working directory to data folder if not
-  # already.
-  if(!grepl("data", WD))
-    setwd("data/")
-
   # Reads the input file to string
-  DATA = readLines('input1.txt')
+  DATA = readLines(argv[1])
   
   # splits eachs character and converts them to integers vector
   data = strtoi(strsplit(DATA, "")[[1]])
