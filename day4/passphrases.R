@@ -2,8 +2,6 @@
 # Day 4
 # Input was list of passphrase words.
 
-library(ggplot2)
-
 
 validateCombination <- function(line){
   'Check the line for anagram combinations,
@@ -54,9 +52,11 @@ makeHist <- function(data){
     }, 
     USE.NAMES = FALSE)
   )
-  df <- table(longVector)
+  df <- table(sort(longVector))
 
-  barplot(df, space=1, names.arg = names(df), cex.names = 0.7, col = "red")
+  barplot(df, xlab = "Letter", ylab="Count", 
+          beside=TRUE, space=1, names.arg = names(df), 
+          cex.axis = 0.7, cex.names = 0.7, col = "red")
 }
 
 
@@ -69,7 +69,7 @@ main <- function(){
   
   input <- readLines(argv[1])
   validateData(input)
-  #makeHist(input)
+  makeHist(input)
     
   # Time with the second phase is miserable
   sprintf("Program took: %f", Sys.time()-start)
