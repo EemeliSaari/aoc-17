@@ -10,7 +10,7 @@ findDistance <- function(number){
   'Finds the manhattan distance to the number in
    question.'
   
-  squareSide <- findSide(number)g
+  squareSide <- findSide(number)
   temp <- squareSide - 1
   
   if(squareSide != number){
