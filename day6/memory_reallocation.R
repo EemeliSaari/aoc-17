@@ -51,7 +51,6 @@ allocateProgram <- function(startBlock){
   # Using a list of vectors
   df <- list(startBlock)
   lastBlock <- startBlock
-  print(startBlock)
   i <- 1
   # Allocates the memory blocks until duplicate is found
   while(TRUE){
@@ -96,8 +95,7 @@ main <- function(){
   
   # Parse and convert string to integer input
   input <- strtoi(unlist(strsplit(readLines(argv[1]),"\t")))
-  #print(input)
-  test <- c(0, 2, 7, 0)
+
   allocateProgram(input)
   sprintf("Program took: %f", Sys.time()-start)
 }
