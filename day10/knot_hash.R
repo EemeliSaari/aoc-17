@@ -2,29 +2,24 @@
 # Day 10
 # Inputs are: list of integers and integer
 
-hashCode <- function(lengths, data, skip=0, ind=1){
-  'Phase 1 function to hash given data according
+
+# Using bitops library for bitwise XOR
+library(bitops)
+
+
+hashRound <- function(lengths, data, skip=0, ind=1){
+  'Phase 1 function to does one round to given data according
    to given lengths.'
   
   hashEnv <- new.env()
   hashEnv$data <- data
   i <- ind
-  #print(ind)
-  cycle <- rep(1:length(data))
-  #indexes <- unlist(lapply(c(1:(length(lengths)+skip*2)), FUN=function(x) out <- cycle))
-  index <- 1
-  #print(i)
-  #print(skip)
-  #print(length(indexes))
+
   lenIndex <- 1
   repeat{
     # Make reversed slice
-    #print(lengths[lenIndex])
     to <- lengths[lenIndex]
-    #print(hashEnv$data[i:length(data)])
-    
-    temp <- c(hashEnv$data[i:length(data)], hashEnv$data[1:length(data)])
-    #print(temp)
+    temp <- c(hashEnv$data[i:length(data)], hashEnv$data[1:i][-i])
     slice <- rev(temp[1:to])
 
     # Apply the slice to hash data
@@ -38,14 +33,13 @@ hashCode <- function(lengths, data, skip=0, ind=1){
         hashEnv$data[hashEnv$index] <- x
       }
     )
-    # Navigate through indexes 
-    #index <- index + to + skip 
-    #print(index)
-    #print(to + skip)
-    i <- (i + to + skip) %% length(data)
-    #i <- indexes[index]
-    #print(i)
     
+    # Navigate through indexes 
+    if((i + to + skip) %% length(data) != 0)
+      i <- (i + to + skip) %% length(data)
+    else
+      i <- length(data)
+
     # Increase the skip size
     skip = skip + 1
     
@@ -57,31 +51,40 @@ hashCode <- function(lengths, data, skip=0, ind=1){
 }
 
 
-hashASCII <- function(lengths, data){
+hashASCII <- function(input, data){
+  'Generates a knot hash for given ASCII input'
   
   hashEnv <- new.env()
   hashEnv$skip <- 0
   hashEnv$pos <- 1
   hashEnv$index <- 1
-  hashEnv$data <- data
+  hashEnv$sparse <- data
   suffixVals <- c(17, 31, 73, 47, 23)
-  hashData <- c(as.numeric(charToRaw(lengths)), suffixVals)
-  #print(hashData)
-  
+  hashData <- c(as.numeric(charToRaw(input)), suffixVals)
+
+  # Run 64 rounds
+  hashEnv$i <- 0
   lapply(rep(1:64), FUN=
     function(x){
       hash <- c(hashData[hashEnv$index:length(hashData)],hashData[1:hashEnv$index][-hashEnv$index])
-      output <- hashCode(lengths=hash, data=hashEnv$data, skip=hashEnv$skip, ind=hashEnv$pos)
-      hashEnv$data <- unlist(output[1])
+      output <- hashRound(lengths=hashData, data=hashEnv$sparse, skip=hashEnv$skip, ind=hashEnv$pos)
+      hashEnv$sparse <- unlist(output[1])
       hashEnv$skip <- unlist(output[3])
       hashEnv$pos <- unlist(output[2])
       hashEnv$index = hashEnv$index + 1
+      hashEnv$i = hashEnv$i + 1
       if(hashEnv$index == length(hash))
         hashEnv$index <- 1
-      #print(hashEnv$index)
     }
   )
-  #print(hashEnv$data)
+  # Do the dense hash and convert to hex
+  knotHash <- unlist(lapply(seq(16,length(data), 16), FUN=
+    function(x){
+      slice <- hashEnv$sparse[(x-15):x]
+      out <- as.character(as.hexmode(Reduce(bitwXor, slice)),width=2)
+    }
+  ))
+  out <- paste(knotHash, collapse = "")
 }
 
 
@@ -93,18 +96,14 @@ main <- function(){
   
   input <- readLines(argv[1])
   data <- rep(0:strtoi(argv[2]))
-  testl <- c(3,4,1,5)
-  testacii <- c("1,2,3")
-  testd <- rep(0:4)
-  parsedData <- strtoi(unlist(strsplit(input,",")))
+  parsedInput <- strtoi(unlist(strsplit(input,",")))
   
   # Phase 1
-  output <- hashCode(parsedData, data)
-  #output <- hashCode(testl,testd)
-  print(output[[1]][1] * output[[1]][2])
-  #print(output)
+  phase1 <- hashRound(parsedInput, data)
+  print(phase1[[1]][1] * phase1[[1]][2])
+  # Phase 2
   phase2 <- hashASCII(input, data)
-  #print(phase2)
+  print(phase2)
   
   sprintf("Program took: %f", Sys.time() - start)
 }
