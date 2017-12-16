@@ -91,16 +91,22 @@ hashASCII <- function(input, data){
 main <- function(){
   
   start <- Sys.time()
+  if(!(exists("argv")))
+    argv <- commandArgs(TRUE)
   
-  argv <- commandArgs(TRUE)
-  
-  input <- readLines(argv[1])
+  #print(argv)
+  if(file.exists(argv[1])){
+    input <- readLines(argv[1])
+    parsedInput <- strtoi(unlist(strsplit(input,",")))
+    
+    # Phase 1
+    phase1 <- hashRound(parsedInput, data)
+    print(phase1[[1]][1] * phase1[[1]][2])
+  }
+  else
+    input <- argv[1]
   data <- rep(0:strtoi(argv[2]))
-  parsedInput <- strtoi(unlist(strsplit(input,",")))
-  
-  # Phase 1
-  phase1 <- hashRound(parsedInput, data)
-  print(phase1[[1]][1] * phase1[[1]][2])
+
   # Phase 2
   phase2 <- hashASCII(input, data)
   print(phase2)
