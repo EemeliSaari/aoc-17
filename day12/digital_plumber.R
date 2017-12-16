@@ -64,7 +64,6 @@ makeNet <- function(rawData, searchTarget){
      }
   )
   names(parsed) <- seq(0,length(rawData)-1,1)
-  #print(parsed)
   group <- network(data=parsed)
   group$make_network(searchTarget)
 
@@ -73,22 +72,24 @@ makeNet <- function(rawData, searchTarget){
   links <- data.frame(source=names(group$connections), target=unlist(group$connections))
   nodes <- data.frame(name=unlist(group$visited))
 
-  #dataEnv$parsed <- parsed
+  dataEnv$parsed <- parsed
   groups <- 1 # since one grop has already been established.
-  while(length(parsed) > 0){
-    #print(length(parsed))
-    #print(unlist(group$connections))
-    targets <- lapply(group$visited, FUN=
-        function(x){
-          out <- as.character(strtoi(x) + 1)
-        }
-      )
-    parsed <- parsed[-unlist(unname(targets))]
+  while(length(dataEnv$parsed) > 0){
+
+    targets <- unname(unlist(as.character(group$visited)))
+
+    lapply(targets, FUN=
+      function(x){
+        dataEnv$parsed = dataEnv$parsed[-match(x, names(dataEnv$parsed))]  
+      }                          
+    )
     group <- network(data=parsed)
-    print(length(parsed))
-    #print(names(parsed))
-    group$make_network(strtoi(names(parsed)[1]))
-    #print(length(group$visited))
+
+    group$make_network(strtoi(names(dataEnv$parsed)[1]))
+
+    if(!(is.na(group$visited)))
+      groups = groups + 1
+    
   }
   # Phase 2
   print(groups)
