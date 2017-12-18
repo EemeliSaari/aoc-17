@@ -1,8 +1,5 @@
 #include <bitset>
-#include <iostream>
 #include <vector>
-#include <cstdio>
-#include <ctime>
 
 #include <Rcpp.h>
 
@@ -14,11 +11,13 @@ using namespace Rcpp;
 using namespace std;
 
 
-bool compareSets(bitset<32> a, bitset<32> b){
+bool compareSets(bitset<16> a, bitset<16> b){
   bool var = true;
-  for(int i = 16; i <= 32; ++i){
+
+  for(int i = 0; i <= 15; ++i){
     if(a[i] != b[i]){
       var = false;
+      // Stop the compare if any differences were found
       break;
     }
   }
@@ -26,12 +25,13 @@ bool compareSets(bitset<32> a, bitset<32> b){
 }
 
 
-int judgeFunction(unsigned a, unsigned b){
+int judgeFunction(long long int a, long long int b){
   
   int value = 0;
   
-  bitset<32> setA(a);
-  bitset<32> setB(b);
+  // take the first 16 bits
+  bitset<16> setA(a);
+  bitset<16> setB(b);
   
   if(compareSets(setA,setB)){
     ++value;
@@ -42,44 +42,62 @@ int judgeFunction(unsigned a, unsigned b){
 
 
 // [[Rcpp::export]]
-vector<double> firstSampling(unsigned startA, unsigned startB, int amount){
+int firstSampling(unsigned startA, unsigned startB, int amount){
   
-  vector<double> timeSamples(amount);
   int count = 0;
   
-  clock_t start = clock();
+  long long int a = (long long int) startA;
+  long long int b = (long long int) startB;
   
-  unsigned long long a = (unsigned long long) startA;
-  unsigned long long b = (unsigned long long) startB;
-  
-  for(int i = 0; i <= amount; ++i){
+  for(int i = 0; i < amount; ++i){
     
     a = (a * GEN_A) % MAX_INT;
     b = (b * GEN_B) % MAX_INT;
-    
-    cout << a << " vs " << b << endl;
-    
+
     count += judgeFunction(a, b);
-    
-    timeSamples[i] = (clock() - start) / (double) CLOCKS_PER_SEC;
   }
-  
-  cout << "First sample: " << count << endl;
-  return timeSamples;
+  return count;
 }
 
 // [[Rcpp::export]]
-NumericVector secondSampling(unsigned startA, unsigned startB, int amount){
+int secondSampling(unsigned startA, unsigned startB, int amount){
   
-  NumericVector timeSamples(amount);
+  
+  long long int a = (long long int) startA;
+  long long int b = (long long int) startB;
+  
+  vector<long long int> aData(amount);
+  vector<long long int> bData(amount);
+  
+  int aCount = 0;
+  int bCount = 0;
+  
+  double counter = 0;
+  // Construct the pairs
+  while(counter < amount){
+    if(aCount < amount){
+      a = (a * GEN_A) % MAX_INT;
+      
+      if(a % 4 == 0){
+        aData[aCount] = a;
+        counter += 0.5;
+        ++aCount;
+      }
+    }
+    if(bCount < amount){
+      b = (b * GEN_B) % MAX_INT;
+      
+      if(b % 8 == 0){
+        bData[bCount] = b;
+        counter += 0.5;
+        ++bCount;
+      }
+    }
+  }
   int count = 0;
-  
   for(int i = 0; i < amount; ++i){
-    clock_t start = clock();
-    
-    timeSamples[i] = (clock() - start) / (double) CLOCKS_PER_SEC;
+    count += judgeFunction(aData[i], bData[i]); 
   }
   
-  cout << "Second sample: " << count << endl;
-  return timeSamples;
+  return count;
 }
