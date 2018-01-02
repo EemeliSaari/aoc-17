@@ -1,5 +1,6 @@
 # Advent of code 2017
 # Day 20
+# Input was a list of particle details (position, velocity, acceleration)
 
 
 library(methods)
@@ -7,60 +8,6 @@ library(methods)
 
 manhattanDist <- function(vec){
   return(sum(abs(vec)))
-}
-
-
-isInt <- function(x){
-  return(x %% 1 == 0)
-}
-
-
-isValid <- function(roots){
-  r <- TRUE
-
-  valued <- list()
-  for(root in roots){
-
-    comp <- root[root %% 1 == 0]
-    comp <- comp[comp > 0]
-    nans <- comp[is.na(comp)]
-    infs <- comp[is.infinite(comp)]
-
-    if(length(comp) > 0 && length(nans) != 2  && length(infs) != 2){
-      valued = c(valued, list(root))
-    }
-  }
-  if(length(valued) != length(roots)){
-    r <- FALSE
-  }
-  return(r)
-}
-
-
-quadraticEq <- function(pos, vel, acc){
-  r <- 0
-  dis <- unlist(lapply(c(1:length(pos)), FUN=
-      function(x){
-        out <- vel[x]^2 - (4 * pos[x] * acc[x])
-      }
-    )
-  )
-  # Check if it's valid to get any real roots
-  if(length(dis[dis > 0]) == length(dis)){
-    roots <- lapply(c(1:length(pos)), FUN=
-      function(x){
-        x1 <- (-vel[x] + sqrt(dis[x])) / (2*acc[x]) 
-        x2 <- (-vel[x] - sqrt(dis[x])) / (2*acc[x])
-        out <- c(x1,x2)
-      }
-    )
-    # Check if any valid roots available that are positivite
-    # integers.
-    if(isValid(roots)){
-      r <- Reduce(intersect, roots)
-    }
-  }
-  return(r)
 }
 
 
@@ -74,17 +21,14 @@ Particle <- setRefClass("Particle",
     id = "numeric"
   ),
   methods = list(
-    move = function(time){
-      e <- new.env()
-      e$i <- 1
-      newPos <- unlist(lapply(c(1:3), FUN=
-        function(p){
-          out <- origin[e$i] + time * velocity[e$i] + acceleration[e$i] * time^2
-          e$i = e$i + 1
-          out
-        }
-      ))
-      current <<- newPos
+    move = function(time=1, perm=FALSE){
+      if(perm){
+        velocity <<- velocity + acceleration
+        origin <<- origin + velocity
+      }
+      else{
+        current <<- origin + time*velocity + 0.5 * acceleration * time^2
+      }
     }
   )
 )
@@ -110,44 +54,51 @@ controller <- function(rawData){
       out
     }
   )
+  # In long run (500 tics) the particles are speeding away from the origo.
   dists <- unlist(lapply(particles, FUN=
       function(x){
-        x$move(500)
+        x$move(time=500)
         comp <- manhattanDist(x$current)
       }
     )
   )
   # Phase 1
   print(match(min(dists), dists)-1)
+  particles <- unlist(particles)
+  for(i in c(1:50)){
+    # Collect the positions to a list
+    positions <- lapply(particles, FUN=
+      function(x){
+        x$move(perm=TRUE)
+        out <- x$origin
+      }                      
+    )
+    # Check the duplicates
+    dups <- unique(which(duplicated(positions)))
 
-
-  collisions <- list()
-  i <- 1
-  for(p in particles){
-    subInd <- 1
-    for(subP in particles){
-      pos <- p$origin-subP$origin
-      acc <- (p$acceleration-subP$acceleration)/2
-      vel <- (p$velocity-subP$velocity) + acc
-
-      realRoot <- quadraticEq(pos=pos, vel=vel, acc=acc)
-      if(realRoot > 0){
-        if(!(realRoot %in% names(collisions)))
-          collisions[[as.character(realRoot)]] <- c(p$id, subP$id)
-        else{
-          search <- rep(seq_along(collisions), sapply(collisions, length))
-          index <- search[match(p$id, unlist(collisions))]
-          
-          collisions[[as.character(realRoot)]] <- c(collisions[[as.character(realRoot)]], c(p$id, subP$id))
-        }
-      }
+    if(length(dups) > 0){
+      org <- positions
+      org[dups] <- 0
       
-      subInd = subInd + 1
+      comp <- unique(lapply(dups, FUN=function(x) if(!is.null(x)) unlist(positions[x])))
+      index <- 1
+      rmv <- c()
+      # Remove also the original duplicates
+      for(var in org){
+        res <- unlist(lapply(comp, function(x) if(identical(x,var)) 1 else 0))
+        if(1 %in% res)
+          rmv = c(rmv, index)
+        index = index + 1
+      }
+
+      dups <- c(dups, unique(unlist(rmv)))
+      particles = particles[-unique(dups)]
     }
-    i = i + 1
   }
-  print(collisions)
+  # Phase 2
+  print(length(particles))
 }
+
 
 main <- function(){
   
@@ -156,9 +107,7 @@ main <- function(){
   # Reads the commandline argument
   argv <- commandArgs(TRUE)
   
-  rawData <- readLines(argv[1])
-  
-  controller(rawData)
+  controller(readLines(argv[1]))
   
   sprintf("Program took: %f", Sys.time()-start)
 }
