@@ -5,7 +5,7 @@
 library(methods)
 
 
-tree <- setRefClass("Tree",
+Tree <- setRefClass("Tree",
   fields = list(data="vector",
                 last="character",
                 index="numeric"),
@@ -32,98 +32,88 @@ tree <- setRefClass("Tree",
   )
 )
 
-sumTree <- setRefClass("SumTree",
-  fields = list(data="vector",
-                weight="numeric",
-                index="numeric"),
-  methods = list(
-    navigate = function(){
-      step(unlist(data[index]))
-    },
-    step = function(target){
-      print(target)
-      visit(target)
-      a <- lapply(target[-c(1,2)], FUN=
+getWeight = function(slice){
+  out <- unlist(strsplit(slice[2], ""))
+  out <- out[-c(1,length(out))]
+  return(strtoi(paste(out, collapse = '')))
+}
+
+branchSum <- function(data, nodes, index, sum){
+
+  searchData <- data[-index]
+  
+  for(node in nodes){
+    search <- rep(seq_along(searchData), sapply(searchData, length))
+    ind <- search[match(node, unlist(searchData))]
+    slice <- unlist(searchData[ind])
+    sum = sum + getWeight(slice)
+    if(length(slice) > 2)
+      sum <- branchSum(searchData, slice[3:length(slice)], ind, sum)
+  }
+  out <- sum
+}
+
+findBalance <- function(data, startPoint){
+    index <- startPoint
+    repeat{
+      slice <- unlist(data[index])
+      subSlice <- slice[c(3:length(slice))]
+      sums <- sapply(subSlice, FUN=
         function(x){
-          i <-rep(seq_along(data), sapply(data, length))[match(x, unlist(data))]
-          main <- find_weight(data[i])
-          temp <- unlist(data[i])
-          end <- lapply(temp[-c(1,2)], FUN=
-            function(y){
-              find_weight(y, ind=i)
-            }
-          )
-          out <- c(main,end)
+         out <- branchSum(data, c(x), index, 0)
         }
       )
-      new <- ""
-      rows <- length(target[-c(1,2)])
-      cols <- length(a) / rows
-      temp <- sapply(c(1:length(a)), FUN=
-        function(x){
-          out <- unlist(a[[x]])
-          print(sum(out))
-          if(length(unique(out[-1])) < length(out))
-            new <- x
-          out
-        }
-      )
-      print(temp)
-    },
-    visit = function(target){
-      data <<- data[-index]
-    },
-    find_weight = function(target, ind=length(data)){
-      temp <- data[-ind]
-      out <- sapply(target, FUN=
-        function(x){
-          i <- rep(seq_along(temp), sapply(temp, length))[match(x, unlist(temp))]
-          out <- unlist(strsplit(unlist(temp[i])[2],""))
-          out <- out[-c(1,length(out))]
-          return <- strtoi(paste(out, collapse = ''))
-        }
-      )
-    }
-  )
-)
+      # Check if the fault is in the root
+      if(length(unlist(table(unlist(sums)))) == 1){
+        targetWeigth <- unname(unlist(last)[match(names(sort(table(unlist(last)), decreasing=TRUE)[1]), unlist(last))])
+        result <- targetWeigth - strtoi(names(unlist(table(unlist(sums))))) * length(unlist(sums))
+        return(result)
+      }
+      newBranch <- names(unlist(sums)[match(names(sort(table(unlist(sums)))[1]), unlist(sums))])
+      data <- data[-index]
+      search <- rep(seq_along(data), sapply(data, length))
+      index <- search[match(newBranch, unlist(data))]
+
+      if(is.na(index))
+        break
+      last <- sums
+    }     
+  }
 
 
 circus <- function(data){
-  
+
   # First phase
-  navObj <- tree(data=data, last="", index=1)
+  navObj <- Tree(data=data, last="", index=1)
   navObj$navigate()
-  bottom <- navObj$last
-  print(bottom)
-  
-  startIndex <- rep(seq_along(data), sapply(data, length))[match(bottom, unlist(data))]
-  print(startIndex)
-  sumObj <- sumTree(data=data, weight=0, index=startIndex)
-  sumObj$navigate()
+  root <- navObj$last
+  print(root)
+
+  # Second phase
+  startIndex <- rep(seq_along(data), sapply(data, length))[match(root, unlist(data))]
+  print(findBalance(data, startIndex))
 }
 
 main <- function(){
   start = Sys.time()
-
   # Reads the commandline argument
   argv <- commandArgs(TRUE)
-  
   # Parse the input data
   input <- sapply(readLines(argv[1]), FUN= 
-                    function(x){
-                      line <- unlist(strsplit(x, " "))
-                      line <- line[-3]
-                      if(length(line) > 2)
-                        line <- sapply(line, FUN=
-                                function(y){
-                                  y <- unlist(strsplit(y,","))       
-                                }, USE.NAMES = FALSE)
-                      else
-                        line
-                    }, USE.NAMES = FALSE)
+    function(x){
+      line <- unlist(strsplit(x, " "))
+      line <- line[-3]
+      if(length(line) > 2)
+        line <- sapply(line, FUN=
+                function(y){
+                  y <- unlist(strsplit(y,","))
+                }, USE.NAMES = FALSE)
+      else
+        line
+    }, USE.NAMES = FALSE
+  )
   # Start the program with parsed data
   circus(input)
-  
   sprintf("Program took: %f", Sys.time()-start)
 }
 
